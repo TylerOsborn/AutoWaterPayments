@@ -17,6 +17,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from twilio.rest import Client
 
 # Load environment variables
 load_dotenv()
@@ -37,9 +38,14 @@ class AutoWaterPurchase:
         self.password = os.getenv('STANDARD_BANK_PASSWORD')
         self.phone_user = os.getenv('PHONE_NUMBER_USER')
         self.phone_enbaya = os.getenv('PHONE_NUMBER_ENBAYA')
+        self.twilio_sid = os.getenv('TWILIO_ACCOUNT_SID')
+        self.twilio_token = os.getenv('TWILIO_AUTH_TOKEN')
+        self.twilio_phone = os.getenv('TWILIO_PHONE_NUMBER')
         self.driver = None
         
-        if not all([self.username, self.password, self.phone_user, self.phone_enbaya]):
+        required_vars = [self.username, self.password, self.phone_user, self.phone_enbaya, 
+                        self.twilio_sid, self.twilio_token, self.twilio_phone]
+        if not all(required_vars):
             raise ValueError("Missing required environment variables")
     
     def setup_driver(self):
@@ -213,6 +219,31 @@ class AutoWaterPurchase:
             logging.error(f"Error taking screenshot: {str(e)}")
             return None
     
+    def send_sms_notification(self):
+        """Send SMS notification with payment details"""
+        try:
+            logging.info("Sending SMS notification")
+            
+            # Initialize Twilio client
+            client = Client(self.twilio_sid, self.twilio_token)
+            
+            # SMS message content as specified in requirements
+            message_body = "2367*0120240822367*500"
+            
+            # Send SMS
+            message = client.messages.create(
+                body=message_body,
+                from_=self.twilio_phone,
+                to=self.phone_enbaya
+            )
+            
+            logging.info(f"SMS sent successfully. Message SID: {message.sid}")
+            return message.sid
+            
+        except Exception as e:
+            logging.error(f"Error sending SMS: {str(e)}")
+            return None
+    
     def cleanup(self):
         """Clean up resources"""
         if self.driver:
@@ -256,7 +287,10 @@ def main():
         time.sleep(420)  # 7 minutes = 420 seconds
         logging.info("Sleep completed, proceeding to SMS")
         
-        # TODO: Implement SMS functionality
+        # Step 8: Send SMS notification
+        sms_result = app.send_sms_notification()
+        
+        logging.info("Auto water purchase process completed successfully")
         
     except Exception as e:
         logging.error(f"Error occurred: {str(e)}")
