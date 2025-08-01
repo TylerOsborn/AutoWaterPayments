@@ -251,6 +251,11 @@ def main():
         # Step 6: Take screenshot
         screenshot_file = app.take_screenshot()
         
+        # Step 7: Sleep for 7 minutes before SMS
+        logging.info("Sleeping for 7 minutes before sending SMS")
+        time.sleep(420)  # 7 minutes = 420 seconds
+        logging.info("Sleep completed, proceeding to SMS")
+        
         # TODO: Implement SMS functionality
         
     except Exception as e:
