@@ -5,10 +5,8 @@ Automated Python script for monthly water payment via Standard Bank online banki
 ## Features
 
 - Automated Standard Bank login and navigation
-- Beneficiary search and payment (R500 to "enbaya")
+- Beneficiary search and payment
 - Screenshot capture of payment confirmation
-- SMS notification via Twilio
-- Optional SMS forwarding capability
 - Scheduled execution (1st of each month at 00:01)
 
 ## Setup
@@ -30,11 +28,6 @@ cp .env.example .env
 Edit `.env` with your actual values:
 - `STANDARD_BANK_USERNAME`: Your Standard Bank username
 - `STANDARD_BANK_PASSWORD`: Your Standard Bank password
-- `PHONE_NUMBER_USER`: Your phone number (with country code)
-- `PHONE_NUMBER_ENBAYA`: Recipient phone number for SMS
-- `TWILIO_ACCOUNT_SID`: Your Twilio Account SID
-- `TWILIO_AUTH_TOKEN`: Your Twilio Auth Token
-- `TWILIO_PHONE_NUMBER`: Your Twilio phone number
 - `FORCE_RUN`: Set to `true` to override timing check (for testing)
 
 ### 3. Set Up Cron Job
