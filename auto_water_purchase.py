@@ -190,6 +190,29 @@ class AutoWaterPurchase:
             logging.error(f"Error confirming payment: {str(e)}")
             raise
     
+    def take_screenshot(self):
+        """Take a screenshot of the payment confirmation page"""
+        try:
+            logging.info("Taking screenshot of payment confirmation")
+            
+            # Generate timestamp for unique filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            screenshot_filename = f"payment_confirmation_{timestamp}.png"
+            
+            # Take screenshot
+            screenshot_saved = self.driver.save_screenshot(screenshot_filename)
+            
+            if screenshot_saved:
+                logging.info(f"Screenshot saved as {screenshot_filename}")
+                return screenshot_filename
+            else:
+                logging.error("Failed to save screenshot")
+                return None
+                
+        except Exception as e:
+            logging.error(f"Error taking screenshot: {str(e)}")
+            return None
+    
     def cleanup(self):
         """Clean up resources"""
         if self.driver:
@@ -225,7 +248,9 @@ def main():
         # Step 5: Confirm payment
         app.confirm_payment()
         
-        # TODO: Take screenshot
+        # Step 6: Take screenshot
+        screenshot_file = app.take_screenshot()
+        
         # TODO: Implement SMS functionality
         
     except Exception as e:
