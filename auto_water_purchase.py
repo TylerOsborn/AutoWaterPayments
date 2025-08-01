@@ -244,6 +244,46 @@ class AutoWaterPurchase:
             logging.error(f"Error sending SMS: {str(e)}")
             return None
     
+    def setup_sms_forwarding(self):
+        """Optional: Set up SMS forwarding if service doesn't support existing numbers"""
+        try:
+            logging.info("Setting up SMS forwarding capability")
+            
+            # This is a placeholder for SMS forwarding functionality
+            # In a real implementation, this would:
+            # 1. Set up a webhook or polling mechanism to receive SMS
+            # 2. Monitor for incoming messages
+            # 3. Forward relevant messages to the user's phone number
+            
+            logging.info("SMS forwarding setup completed (placeholder)")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Error setting up SMS forwarding: {str(e)}")
+            return False
+    
+    def forward_sms_to_user(self, message_content):
+        """Forward received SMS to user's phone number"""
+        try:
+            logging.info("Forwarding SMS to user")
+            
+            # Initialize Twilio client
+            client = Client(self.twilio_sid, self.twilio_token)
+            
+            # Forward the message to user's phone
+            message = client.messages.create(
+                body=f"SMS Forward: {message_content}",
+                from_=self.twilio_phone,
+                to=self.phone_user
+            )
+            
+            logging.info(f"SMS forwarded to user. Message SID: {message.sid}")
+            return message.sid
+            
+        except Exception as e:
+            logging.error(f"Error forwarding SMS: {str(e)}")
+            return None
+    
     def cleanup(self):
         """Clean up resources"""
         if self.driver:
@@ -289,6 +329,10 @@ def main():
         
         # Step 8: Send SMS notification
         sms_result = app.send_sms_notification()
+        
+        # Optional: Set up SMS forwarding if needed
+        # Uncomment the line below if SMS service doesn't support existing numbers
+        # app.setup_sms_forwarding()
         
         logging.info("Auto water purchase process completed successfully")
         
