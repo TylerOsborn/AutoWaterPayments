@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 Auto Water Purchase Script
-Automates monthly water payment via Standard Bank online banking
-and sends SMS notification.
+Automates monthly water payment via Standard Bank online banking.
 """
 
 import os
@@ -16,8 +15,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.action_chains import ActionChains
 from webdriver_manager.chrome import ChromeDriverManager
-from twilio.rest import Client
+from webdriver_manager.core.os_manager import ChromeType
 
 # Load environment variables
 load_dotenv()
@@ -36,28 +36,31 @@ class AutoWaterPurchase:
     def __init__(self):
         self.username = os.getenv('STANDARD_BANK_USERNAME')
         self.password = os.getenv('STANDARD_BANK_PASSWORD')
-        self.phone_user = os.getenv('PHONE_NUMBER_USER')
-        self.phone_enbaya = os.getenv('PHONE_NUMBER_ENBAYA')
-        self.twilio_sid = os.getenv('TWILIO_ACCOUNT_SID')
-        self.twilio_token = os.getenv('TWILIO_AUTH_TOKEN')
-        self.twilio_phone = os.getenv('TWILIO_PHONE_NUMBER')
+        self.payment_amount = os.getenv('PAYMENT_AMOUNT', '1')  # Default to R1 if not set
         self.driver = None
         
-        required_vars = [self.username, self.password, self.phone_user, self.phone_enbaya, 
-                        self.twilio_sid, self.twilio_token, self.twilio_phone]
+        required_vars = [self.username, self.password]
         if not all(required_vars):
             raise ValueError("Missing required environment variables")
     
     def setup_driver(self):
         """Initialize Chrome WebDriver with appropriate options"""
         chrome_options = Options()
-        chrome_options.add_argument('--headless')
+        # chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--window-size=1920,1080')
         
-        service = Service(ChromeDriverManager().install())
+        # Use chromium-browser binary explicitly
+        chrome_options.binary_location = '/usr/bin/chromium-browser'
+        
+        # Use system chromedriver or download compatible one
+        try:
+            service = Service('/usr/bin/chromedriver')
+        except:
+            service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
+        
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
         self.wait = WebDriverWait(self.driver, 30)
         
@@ -74,22 +77,80 @@ class AutoWaterPurchase:
             sign_in_button.click()
             logging.info("Clicked sign in button")
             
-            # Input username
-            username_field = self.wait.until(
-                EC.presence_of_element_located((By.NAME, "username"))
+            # Input username - wait for element to be present and enabled
+            try:
+                username_field = self.wait.until(
+                    EC.presence_of_element_located((By.NAME, "pf.username"))
+                )
+                logging.info("Found username field")
+                # Wait a bit more for the field to be ready
+                time.sleep(2)
+                self.wait.until(EC.element_to_be_clickable((By.NAME, "pf.username")))
+                logging.info("Username field is clickable")
+                
+                # Try clicking first, then clearing, then entering text
+                username_field.click()
+                time.sleep(0.5)  # Brief pause after click
+                
+                # Use JavaScript to clear and set value as fallback
+                try:
+                    username_field.clear()
+                    logging.info("Cleared username field")
+                except:
+                    logging.info("Using JavaScript to clear username field")
+                    self.driver.execute_script("arguments[0].value = '';", username_field)
+                
+                # Try send_keys first, then JavaScript as fallback
+                try:
+                    username_field.send_keys(self.username)
+                    logging.info("Entered username using send_keys")
+                except:
+                    logging.info("Using JavaScript to enter username")
+                    self.driver.execute_script("arguments[0].value = arguments[1];", username_field, self.username)
+                    logging.info("Entered username using JavaScript")
+            except Exception as e:
+                logging.error(f"Error with username field: {str(e)}")
+                raise
+            
+            # Input password - wait for element to be present and enabled
+            try:
+                password_field = self.wait.until(
+                    EC.presence_of_element_located((By.NAME, "pf.pass"))
+                )
+                logging.info("Found password field")
+                # Wait a bit more for the field to be ready
+                time.sleep(1)
+                self.wait.until(EC.element_to_be_clickable((By.NAME, "pf.pass")))
+                logging.info("Password field is clickable")
+                
+                # Try clicking first, then clearing, then entering text
+                password_field.click()
+                time.sleep(0.5)  # Brief pause after click
+                
+                # Use JavaScript to clear and set value as fallback
+                try:
+                    password_field.clear()
+                    logging.info("Cleared password field")
+                except:
+                    logging.info("Using JavaScript to clear password field")
+                    self.driver.execute_script("arguments[0].value = '';", password_field)
+                
+                # Try send_keys first, then JavaScript as fallback
+                try:
+                    password_field.send_keys(self.password)
+                    logging.info("Entered password using send_keys")
+                except:
+                    logging.info("Using JavaScript to enter password")
+                    self.driver.execute_script("arguments[0].value = arguments[1];", password_field, self.password)
+                    logging.info("Entered password using JavaScript")
+            except Exception as e:
+                logging.error(f"Error with password field: {str(e)}")
+                raise
+            
+            # Click login/submit button - wait for it to be clickable
+            login_button = self.wait.until(
+                EC.element_to_be_clickable((By.ID, "signon"))
             )
-            username_field.clear()
-            username_field.send_keys(self.username)
-            logging.info("Entered username")
-            
-            # Input password
-            password_field = self.driver.find_element(By.NAME, "password")
-            password_field.clear()
-            password_field.send_keys(self.password)
-            logging.info("Entered password")
-            
-            # Click login/submit button
-            login_button = self.driver.find_element(By.XPATH, "//button[@type='submit']")
             login_button.click()
             logging.info("Clicked login button")
             
@@ -102,26 +163,19 @@ class AutoWaterPurchase:
             raise
     
     def navigate_to_pay_section(self):
-        """Navigate to the PAY section"""
+        """Navigate directly to the beneficiaries list"""
         try:
-            logging.info("Navigating to PAY section")
+            logging.info("Navigating directly to beneficiaries list")
             
-            # Click the PAY button
-            pay_button = self.wait.until(
-                EC.element_to_be_clickable((By.ID, "Transact-Pay"))
-            )
-            pay_button.click()
-            logging.info("Clicked PAY button")
+            # Navigate directly to the beneficiaries list URL
+            self.driver.get("https://onlinebanking.standardbank.co.za/#/beneficiaries/list")
+            logging.info("Navigated to beneficiaries list page")
             
-            # Click Beneficiary dropdown
-            beneficiary_dropdown = self.wait.until(
-                EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Beneficiary') or contains(text(), 'BENEFICIARY')]"))
-            )
-            beneficiary_dropdown.click()
-            logging.info("Clicked Beneficiary dropdown")
+            # Wait for page to load
+            time.sleep(3)
             
         except Exception as e:
-            logging.error(f"Error navigating to pay section: {str(e)}")
+            logging.error(f"Error navigating to beneficiaries list: {str(e)}")
             raise
     
     def search_and_pay_beneficiary(self):
@@ -133,7 +187,9 @@ class AutoWaterPurchase:
             search_field = self.wait.until(
                 EC.presence_of_element_located((By.ID, "filter"))
             )
+            search_field.click()
             search_field.clear()
+            search_field.click()
             search_field.send_keys("enbaya")
             logging.info("Entered 'enbaya' in search field")
             
@@ -142,7 +198,8 @@ class AutoWaterPurchase:
             pay_link = self.wait.until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "a.action.pay"))
             )
-            pay_link.click()
+            actions = ActionChains(self.driver)
+            actions.move_to_element(pay_link).pause(2).click().perform()
             logging.info("Clicked pay button for enbaya beneficiary")
             
         except Exception as e:
@@ -150,23 +207,30 @@ class AutoWaterPurchase:
             raise
     
     def enter_payment_amount(self):
-        """Enter R500 payment amount"""
+        """Enter payment amount"""
         try:
             logging.info("Entering payment amount")
             
-            # Find amount input field and enter 500
+            # Find amount input field and enter payment amount
             amount_field = self.wait.until(
                 EC.presence_of_element_located((By.ID, "amount"))
             )
-            amount_field.clear()
-            amount_field.send_keys("500")
-            logging.info("Entered R500 as payment amount")
+
+            actions = ActionChains(self.driver)
+            actions.scroll_by_amount(0, 2000).pause(2) \
+                .move_to_element(amount_field) \
+                .pause(2) \
+                .click() \
+                .send_keys(self.payment_amount) \
+                .perform()
+            logging.info(f"Entered {self.payment_amount} as payment amount")
             
             # Click Next button
             next_button = self.wait.until(
                 EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Next')]"))
             )
-            next_button.click()
+            actions = ActionChains(self.driver)
+            actions.move_to_element(next_button).pause(2).click().perform()
             logging.info("Clicked Next button")
             
         except Exception as e:
@@ -185,7 +249,9 @@ class AutoWaterPurchase:
             confirm_button = self.wait.until(
                 EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Confirm')]"))
             )
-            confirm_button.click()
+
+            actions = ActionChains(self.driver)
+            actions.move_to_element(confirm_button).pause(2).click().perform()
             logging.info("Clicked Confirm button")
             
             # Wait for payment to process
@@ -217,71 +283,6 @@ class AutoWaterPurchase:
                 
         except Exception as e:
             logging.error(f"Error taking screenshot: {str(e)}")
-            return None
-    
-    def send_sms_notification(self):
-        """Send SMS notification with payment details"""
-        try:
-            logging.info("Sending SMS notification")
-            
-            # Initialize Twilio client
-            client = Client(self.twilio_sid, self.twilio_token)
-            
-            # SMS message content as specified in requirements
-            message_body = "2367*0120240822367*500"
-            
-            # Send SMS
-            message = client.messages.create(
-                body=message_body,
-                from_=self.twilio_phone,
-                to=self.phone_enbaya
-            )
-            
-            logging.info(f"SMS sent successfully. Message SID: {message.sid}")
-            return message.sid
-            
-        except Exception as e:
-            logging.error(f"Error sending SMS: {str(e)}")
-            return None
-    
-    def setup_sms_forwarding(self):
-        """Optional: Set up SMS forwarding if service doesn't support existing numbers"""
-        try:
-            logging.info("Setting up SMS forwarding capability")
-            
-            # This is a placeholder for SMS forwarding functionality
-            # In a real implementation, this would:
-            # 1. Set up a webhook or polling mechanism to receive SMS
-            # 2. Monitor for incoming messages
-            # 3. Forward relevant messages to the user's phone number
-            
-            logging.info("SMS forwarding setup completed (placeholder)")
-            return True
-            
-        except Exception as e:
-            logging.error(f"Error setting up SMS forwarding: {str(e)}")
-            return False
-    
-    def forward_sms_to_user(self, message_content):
-        """Forward received SMS to user's phone number"""
-        try:
-            logging.info("Forwarding SMS to user")
-            
-            # Initialize Twilio client
-            client = Client(self.twilio_sid, self.twilio_token)
-            
-            # Forward the message to user's phone
-            message = client.messages.create(
-                body=f"SMS Forward: {message_content}",
-                from_=self.twilio_phone,
-                to=self.phone_user
-            )
-            
-            logging.info(f"SMS forwarded to user. Message SID: {message.sid}")
-            return message.sid
-            
-        except Exception as e:
-            logging.error(f"Error forwarding SMS: {str(e)}")
             return None
     
     def cleanup(self):
@@ -325,17 +326,12 @@ def main():
         # Step 6: Take screenshot
         screenshot_file = app.take_screenshot()
         
-        # Step 7: Sleep for 7 minutes before SMS
-        logging.info("Sleeping for 7 minutes before sending SMS")
-        time.sleep(420)  # 7 minutes = 420 seconds
-        logging.info("Sleep completed, proceeding to SMS")
+        # Step 7: Save screenshot
+        if screenshot_file:
+            logging.info(f"Payment confirmation screenshot saved: {screenshot_file}")
+        else:
+            logging.warning("No screenshot taken due to an error")
         
-        # Step 8: Send SMS notification
-        sms_result = app.send_sms_notification()
-        
-        # Optional: Set up SMS forwarding if needed
-        # Uncomment the line below if SMS service doesn't support existing numbers
-        # app.setup_sms_forwarding()
         
         logging.info("Auto water purchase process completed successfully")
         
