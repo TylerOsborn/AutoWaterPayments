@@ -118,6 +118,78 @@ class AutoWaterPurchase:
             logging.error(f"Error navigating to pay section: {str(e)}")
             raise
     
+    def search_and_pay_beneficiary(self):
+        """Search for enbaya beneficiary and initiate payment"""
+        try:
+            logging.info("Searching for enbaya beneficiary")
+            
+            # Find and use the search input field
+            search_field = self.wait.until(
+                EC.presence_of_element_located((By.ID, "filter"))
+            )
+            search_field.clear()
+            search_field.send_keys("enbaya")
+            logging.info("Entered 'enbaya' in search field")
+            
+            # Wait for search results and click pay button
+            time.sleep(2)
+            pay_link = self.wait.until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "a.action.pay"))
+            )
+            pay_link.click()
+            logging.info("Clicked pay button for enbaya beneficiary")
+            
+        except Exception as e:
+            logging.error(f"Error searching for beneficiary: {str(e)}")
+            raise
+    
+    def enter_payment_amount(self):
+        """Enter R500 payment amount"""
+        try:
+            logging.info("Entering payment amount")
+            
+            # Find amount input field and enter 500
+            amount_field = self.wait.until(
+                EC.presence_of_element_located((By.ID, "amount"))
+            )
+            amount_field.clear()
+            amount_field.send_keys("500")
+            logging.info("Entered R500 as payment amount")
+            
+            # Click Next button
+            next_button = self.wait.until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Next')]"))
+            )
+            next_button.click()
+            logging.info("Clicked Next button")
+            
+        except Exception as e:
+            logging.error(f"Error entering payment amount: {str(e)}")
+            raise
+    
+    def confirm_payment(self):
+        """Confirm the payment"""
+        try:
+            logging.info("Confirming payment")
+            
+            # Wait for confirmation page to load
+            time.sleep(3)
+            
+            # Click Confirm button
+            confirm_button = self.wait.until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Confirm')]"))
+            )
+            confirm_button.click()
+            logging.info("Clicked Confirm button")
+            
+            # Wait for payment to process
+            time.sleep(5)
+            logging.info("Payment confirmation completed")
+            
+        except Exception as e:
+            logging.error(f"Error confirming payment: {str(e)}")
+            raise
+    
     def cleanup(self):
         """Clean up resources"""
         if self.driver:
@@ -144,7 +216,16 @@ def main():
         # Step 2: Navigate to PAY section
         app.navigate_to_pay_section()
         
-        # TODO: Implement beneficiary search and payment
+        # Step 3: Search and select beneficiary
+        app.search_and_pay_beneficiary()
+        
+        # Step 4: Enter payment amount
+        app.enter_payment_amount()
+        
+        # Step 5: Confirm payment
+        app.confirm_payment()
+        
+        # TODO: Take screenshot
         # TODO: Implement SMS functionality
         
     except Exception as e:
