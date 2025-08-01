@@ -55,6 +55,69 @@ class AutoWaterPurchase:
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
         self.wait = WebDriverWait(self.driver, 30)
         
+    def login_to_standard_bank(self):
+        """Navigate to Standard Bank and perform login"""
+        try:
+            logging.info("Navigating to Standard Bank login page")
+            self.driver.get("https://onlinebanking.standardbank.co.za/#/landing-page")
+            
+            # Click sign in button
+            sign_in_button = self.wait.until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Sign in') or contains(text(), 'SIGN IN')]"))
+            )
+            sign_in_button.click()
+            logging.info("Clicked sign in button")
+            
+            # Input username
+            username_field = self.wait.until(
+                EC.presence_of_element_located((By.NAME, "username"))
+            )
+            username_field.clear()
+            username_field.send_keys(self.username)
+            logging.info("Entered username")
+            
+            # Input password
+            password_field = self.driver.find_element(By.NAME, "password")
+            password_field.clear()
+            password_field.send_keys(self.password)
+            logging.info("Entered password")
+            
+            # Click login/submit button
+            login_button = self.driver.find_element(By.XPATH, "//button[@type='submit']")
+            login_button.click()
+            logging.info("Clicked login button")
+            
+            # Wait for login to complete
+            time.sleep(5)
+            logging.info("Login completed successfully")
+            
+        except Exception as e:
+            logging.error(f"Error during login: {str(e)}")
+            raise
+    
+    def navigate_to_pay_section(self):
+        """Navigate to the PAY section"""
+        try:
+            logging.info("Navigating to PAY section")
+            
+            # Click the PAY button
+            pay_button = self.wait.until(
+                EC.element_to_be_clickable((By.ID, "Transact-Pay"))
+            )
+            pay_button.click()
+            logging.info("Clicked PAY button")
+            
+            # Click Beneficiary dropdown
+            beneficiary_dropdown = self.wait.until(
+                EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Beneficiary') or contains(text(), 'BENEFICIARY')]"))
+            )
+            beneficiary_dropdown.click()
+            logging.info("Clicked Beneficiary dropdown")
+            
+        except Exception as e:
+            logging.error(f"Error navigating to pay section: {str(e)}")
+            raise
+    
     def cleanup(self):
         """Clean up resources"""
         if self.driver:
@@ -75,7 +138,13 @@ def main():
         app.setup_driver()
         logging.info("WebDriver initialized successfully")
         
-        # TODO: Implement banking automation
+        # Step 1: Login to Standard Bank
+        app.login_to_standard_bank()
+        
+        # Step 2: Navigate to PAY section
+        app.navigate_to_pay_section()
+        
+        # TODO: Implement beneficiary search and payment
         # TODO: Implement SMS functionality
         
     except Exception as e:
