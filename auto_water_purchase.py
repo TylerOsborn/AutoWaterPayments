@@ -293,10 +293,13 @@ def main():
     """Main execution function"""
     logging.info("Starting Auto Water Purchase script")
     
-    # Check if it's the first day of the month at 00:01
+    # Check if it's the first day of the month at 00:01 (or allow override for testing)
     now = datetime.now()
-    if now.day != 1 or now.hour != 0 or now.minute != 1:
+    force_run = os.getenv('FORCE_RUN', 'false').lower() == 'true'
+    
+    if not force_run and (now.day != 1 or now.hour != 0 or now.minute != 1):
         logging.info(f"Not scheduled time. Current: {now}. Exiting.")
+        logging.info("Set FORCE_RUN=true environment variable to override timing check")
         return
     
     app = AutoWaterPurchase()
