@@ -13,7 +13,7 @@ PYTHON_SCRIPT="$SCRIPT_DIR/auto_water_purchase.py"
 LOG_FILE="$SCRIPT_DIR/cron.log"
 
 # Cron job entry - runs at 00:01 on the first day of every month
-CRON_ENTRY="1 0 1 * * cd $SCRIPT_DIR && /usr/bin/python3 $PYTHON_SCRIPT >> $LOG_FILE 2>&1"
+CRON_ENTRY="1 0 1 * * cd $SCRIPT_DIR && source ./venv/bin/activate &&/usr/bin/python3 $PYTHON_SCRIPT >> $LOG_FILE 2>&1"
 
 echo "Setting up cron job for auto water purchase..."
 echo "Script location: $PYTHON_SCRIPT"
