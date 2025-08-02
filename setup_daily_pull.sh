@@ -2,7 +2,7 @@
 
 # Script to set up a daily cron job that pulls this repository at midday (12:00 PM)
 
-REPO_PATH="/home/tyler/programming/auto-water-purchase"
+REPO_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 CRON_COMMAND="0 12 * * * cd $REPO_PATH && git pull origin main"
 
 # Check if cron job already exists
